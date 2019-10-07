@@ -1,24 +1,4 @@
 
-// A Remote Procedure Call abstraction around the message passing available to
-// WebExtension scripts. Usable to call a function in the background script from
-// a tab's content script, or vice versa.
-//
-// The calling side always gets a Promise of the return value. The executing
-// (remote) function can be an async function (= it returns a Promise), whose
-// completion then will then be waited for.
-
-// Example use:
-//
-// === background.js ===
-// function myFunc(arg) {
-// 	return arg*2
-// }
-// makeRemotelyCallable({myFunc})
-//
-// === content_script.js ===
-// const myRemoteFunc = remoteFunction('myFunc')
-// myRemoteFunc(21).then(result => { ... result is 42! ... })
-
 // Our secret tokens to recognise our messages
 const RPC_CALL = '__RPC_CALL__'
 const RPC_RESPONSE = '__RPC_RESPONSE__'
@@ -37,15 +17,9 @@ export class RemoteError extends Error {
 	}
 }
 
+
 // === Initiating side ===
 
-// Create a proxy function that invokes the specified remote function.
-// Arguments
-// - funcName (required): name of the function as registered on the remote side.
-// - options (optional): {
-//	   tabId: The id of the tab whose content script is the remote side.
-//			  Leave undefined to call the background script (from a tab).
-//   }
 export function remoteFunction(funcName, { tabId } = {}) {
 	const otherSide = (tabId !== undefined)
 		? "the tab's content script"
@@ -144,18 +118,6 @@ function incomingRPCListener(message, sender) {
 
 // A bit of global state to ensure we only attach the event listener once.
 let enabled = false
-
-// Register a function to allow remote scripts to call it.
-// Arguments:
-// - functions (required):
-//	 An object with a {functionName: function} mapping.
-//	 Each function will be callable with the given name.
-// - options (optional): {
-//	   insertExtraArg:
-//		   If truthy, each executed function also receives, as its first
-//		   argument before the arguments it was invoked with, an object with
-//		   the details of the tab that sent the message.
-//   }
 
 export function makeRemotelyCallable(functions, { insertExtraArg = false } = {}) {
 	// Every function is passed an extra argument with sender information,
