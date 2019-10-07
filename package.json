@@ -1,0 +1,47 @@
+{
+  "name": "webextension-rpc",
+  "version": "0.1.0",
+  "description": "Remote Procedure Call implementation for WebExtensions, to easily call functions across content scripts and background script.",
+  "main": "src/webextension-rpc.js",
+  "scripts": {
+    "test": "ava"
+  },
+  "homepage": "https://code.treora.com/gerben/webextension-rpc",
+  "repository": {
+    "type": "git",
+    "url": "https://code.treora.com/gerben/webextension-rpc"
+  },
+  "author": "Gerben <gerben@treora.com>",
+  "license": "CC0-1.0",
+  "devDependencies": {
+    "@babel/plugin-transform-runtime": "^7.6.2",
+    "@babel/preset-env": "^7.6.2",
+    "@babel/register": "^7.6.2",
+    "ava": "^2.4.0",
+    "sinon": "^7.5.0"
+  },
+  "ava": {
+    "require": [
+      "@babel/register"
+    ]
+  },
+  "babel": {
+    "retainLines": true,
+    "plugins": [
+      "@babel/plugin-transform-runtime"
+    ],
+    "presets": [
+      [
+        "@babel/preset-env",
+        {
+          "targets": {
+            "node": "current"
+          }
+        }
+      ]
+    ]
+  },
+  "dependencies": {
+    "@babel/runtime": "^7.6.2"
+  }
+}
