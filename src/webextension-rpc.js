@@ -3,6 +3,8 @@
 const RPC_CALL = '__RPC_CALL__'
 const RPC_RESPONSE = '__RPC_RESPONSE__'
 
+let isChromeFlavor = null
+
 export class RpcError extends Error {
 	constructor(message) {
 		super(message)
@@ -17,10 +19,19 @@ export class RemoteError extends Error {
 	}
 }
 
+export function initBrowserFlavor(isChrome) {
+	if(isChrome === undefined && isChromeFlavor !== null)
+		return
+
+	isChromeFlavor = isChrome !== undefined ? isChrome : (
+		navigator.userAgent.indexOf('Chrome') !== -1
+	)
+}
 
 // === Initiating side ===
 
 export function remoteFunction(funcName, { tabId } = {}) {
+	initBrowserFlavor()
 	const otherSide = (tabId !== undefined)
 		? "the tab's content script"
 		: 'the background script'
@@ -35,10 +46,21 @@ export function remoteFunction(funcName, { tabId } = {}) {
 		// Try send the message and await the response.
 		let response
 		try {
-			response = (tabId !== undefined)
-				? await browser.tabs.sendMessage(tabId, message)
-				: await browser.runtime.sendMessage(message)
-		} catch (err) {}
+			if(isChromeFlavor) {
+				response = await new Promise((resolve, _) => {
+					if(tabId !== undefined)
+						chrome.tabs.sendMessage(tabId, message, resolve)
+					else
+						chrome.runtime.sendMessage(message, resolve)
+				})
+			} else {
+				response = (tabId !== undefined)
+					? await browser.tabs.sendMessage(tabId, message)
+					: await browser.runtime.sendMessage(message)
+			}
+		} catch (err) {
+			console.error(err)
+		}
 
 		// Check if we got an error or no response.
 		if (response === undefined) {
@@ -79,17 +101,21 @@ export function remoteFunction(funcName, { tabId } = {}) {
 
 const remotelyCallableFunctions = {}
 
-function incomingRPCListener(message, sender) {
+function incomingRPCListener(message, sender, sendMessage) {
 	if (message && message[RPC_CALL] === RPC_CALL) {
 		const funcName = message.funcName
 		const args = message.hasOwnProperty('args') ? message.args : []
 		const func = remotelyCallableFunctions[funcName]
 		if (func === undefined) {
 			console.error(`Received RPC for unknown function: ${funcName}`)
-			return Promise.resolve({
+			let promisedResponse = Promise.resolve({
 				rpcError: `No such function registered for RPC: ${funcName}`,
 				[RPC_RESPONSE]: RPC_RESPONSE,
 			})
+			if(!isChromeFlavor)
+				return promisedResponse
+			promisedResponse.then(sendMessage)
+			return
 		}
 		const extraArg = {
 			tab: sender.tab,
@@ -100,19 +126,28 @@ function incomingRPCListener(message, sender) {
 		try {
 			returnValue = func(extraArg, ...args)
 		} catch (error) {
-			return Promise.resolve({
+			let promisedResponse = Promise.resolve({
 				errorMessage: error.message,
 				[RPC_RESPONSE]: RPC_RESPONSE,
 			})
+			if(!isChromeFlavor)
+				return promisedResponse
+			promisedResponse.then(sendMessage)
+			return
 		}
 		// Return the function's return value. If it is a promise, first await its result.
-		return Promise.resolve(returnValue).then(returnValue => ({
+		let responsePromise = Promise.resolve(returnValue).then(returnValue => ({
 			returnValue,
 			[RPC_RESPONSE]: RPC_RESPONSE,
 		})).catch(error => ({
 			errorMessage: error.message,
 			[RPC_RESPONSE]: RPC_RESPONSE,
 		}))
+
+		if(!isChromeFlavor)
+			return responsePromise
+
+		responsePromise.then(sendMessage)
 	}
 }
 
@@ -136,7 +171,8 @@ export function makeRemotelyCallable(functions, { insertExtraArg = false } = {})
 
 	// Enable the listener if needed.
 	if (!enabled) {
-		browser.runtime.onMessage.addListener(incomingRPCListener)
+		initBrowserFlavor()
+		runtime.onMessage.addListener(incomingRPCListener)
 		enabled = true
 	}
 }
