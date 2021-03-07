@@ -2,6 +2,7 @@
 // Our secret tokens to recognise our messages
 const RPC_CALL = '__RPC_CALL__'
 const RPC_RESPONSE = '__RPC_RESPONSE__'
+const browser = browser || chrome;
 
 export class RpcError extends Error {
 	constructor(message) {
