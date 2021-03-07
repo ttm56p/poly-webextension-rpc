@@ -172,6 +172,7 @@ export function makeRemotelyCallable(functions, { insertExtraArg = false } = {})
 	// Enable the listener if needed.
 	if (!enabled) {
 		initBrowserFlavor()
+		let runtime = isChromeFlavor ? chrome.runtime : browser.runtime
 		runtime.onMessage.addListener(incomingRPCListener)
 		enabled = true
 	}
