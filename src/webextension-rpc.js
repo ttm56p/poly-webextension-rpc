@@ -108,13 +108,13 @@ function incomingRPCListener(message, sender, sendMessage) {
 		const func = remotelyCallableFunctions[funcName]
 		if (func === undefined) {
 			console.error(`Received RPC for unknown function: ${funcName}`)
-			let promisedResponse = Promise.resolve({
+			let promise = Promise.resolve({
 				rpcError: `No such function registered for RPC: ${funcName}`,
 				[RPC_RESPONSE]: RPC_RESPONSE,
 			})
 			if(!isChromeFlavor)
-				return promisedResponse
-			promisedResponse.then(sendMessage)
+				return promise
+			promise.then(sendMessage)
 			return
 		}
 		const extraArg = {
@@ -126,17 +126,17 @@ function incomingRPCListener(message, sender, sendMessage) {
 		try {
 			returnValue = func(extraArg, ...args)
 		} catch (error) {
-			let promisedResponse = Promise.resolve({
+			let promise = Promise.resolve({
 				errorMessage: error.message,
 				[RPC_RESPONSE]: RPC_RESPONSE,
 			})
 			if(!isChromeFlavor)
-				return promisedResponse
-			promisedResponse.then(sendMessage)
+				return promise
+			promise.then(sendMessage)
 			return
 		}
 		// Return the function's return value. If it is a promise, first await its result.
-		let responsePromise = Promise.resolve(returnValue).then(returnValue => ({
+		let promise = Promise.resolve(returnValue).then(returnValue => ({
 			returnValue,
 			[RPC_RESPONSE]: RPC_RESPONSE,
 		})).catch(error => ({
@@ -145,9 +145,9 @@ function incomingRPCListener(message, sender, sendMessage) {
 		}))
 
 		if(!isChromeFlavor)
-			return responsePromise
+			return promise
 
-		responsePromise.then(sendMessage)
+		promise.then(sendMessage)
 	}
 }
 
