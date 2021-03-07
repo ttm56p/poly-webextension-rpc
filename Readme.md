@@ -1,4 +1,9 @@
-# webextension-rpc
+# poly-webextension-rpc
+
+This is fork of https://code.treora.com/gerben/webextension-rpc
+Purpose of this fork is to add chrome remote api as fallback option when browser remote api not available.
+
+## webextension-rpc
 
 This module provides a *Remote Procedure Call* abstraction around the message passing that is
 available to WebExtension (browser extension) scripts. It makes it easier to call a function in the
